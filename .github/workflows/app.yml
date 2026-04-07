@@ -33,12 +33,12 @@ jobs:
           docker tag $IMAGE_NAME ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
 
-      # 🚀 Deploy to EC2 (Amazon Linux)
+      # deploy to ec2 (ubuntu)
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
+          username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             SERVICE=${{ matrix.service }}
