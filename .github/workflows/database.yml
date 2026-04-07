@@ -1,0 +1,25 @@
+name: Database Pipeline
+
+on:
+  push:
+    paths:
+      - 'database/**'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get install postgresql-client
+
+      - name: Run migrations
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: |
+          PGPASSWORD=$DB_PASS psql -h $DB_HOST -U $DB_USER -d mydb -f database/schema.sql

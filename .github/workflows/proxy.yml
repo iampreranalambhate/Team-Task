@@ -1,0 +1,25 @@
+name: Proxy Pipeline
+
+on:
+  push:
+    paths:
+      - 'proxy/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t my-proxy ./proxy
+
+      - name: Run container (test)
+        run: |
+          docker run -d -p 8080:80 my-proxy
+
+      - name: Deploy (example)
+        run: echo "Deploy proxy to server"

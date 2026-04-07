@@ -1,0 +1,61 @@
+name: Application Pipeline
+
+on:
+  push:
+    paths:
+      - 'app/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        language: [java, react, python]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Java
+      - name: Set up Java
+        if: matrix.language == 'java'
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: Build Java
+        if: matrix.language == 'java'
+        run: |
+          cd app/java
+          ./mvnw clean install
+
+      # React
+      - name: Setup Node
+        if: matrix.language == 'react'
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build React
+        if: matrix.language == 'react'
+        run: |
+          cd app/react
+          npm install
+          npm run build
+
+      # Python
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Build Python
+        if: matrix.language == 'python'
+        run: |
+          cd app/python
+          pip install -r requirements.txt
+
+      - name: Deploy
+        run: echo "Deploy app"
