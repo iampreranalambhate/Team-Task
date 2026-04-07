@@ -22,4 +22,22 @@ jobs:
           docker run -d -p 8080:80 my-proxy
 
       - name: Deploy (example)
-        run: echo "Deploy proxy to server"
+        run:  ssh -o StrictHostKeyChecking=no ubuntu@<EC2-IP> << 'EOF'
+
+      # Go to your project folder
+      cd ~/Team-Task
+
+      # Get latest code
+      git pull origin main
+
+      # Stop old container
+      docker stop my-proxy || true
+      docker rm my-proxy || true
+
+      # Build new docker image
+      docker build -t my-proxy ./proxy
+
+      # Run container
+      docker run -d -p 80:80 --name my-proxy my-proxy
+
+    EOF
