@@ -1,4 +1,4 @@
-name: Application Pipeline
+name:  Application Pipeline
 
 on:
   push:
@@ -6,56 +6,53 @@ on:
       - 'app/**'
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        language: [java, react, python]
+        service: [java, react, python]
 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Java
-      - name: Set up Java
-        if: matrix.language == 'java'
-        uses: actions/setup-java@v3
+      # 🐳 Docker Login
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
         with:
-          java-version: '17'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Java
-        if: matrix.language == 'java'
+      # 🐳 Build & Push Image
+      - name: Build & Push Docker Image
         run: |
-          cd app/java
-          ./mvnw clean install
+          IMAGE_NAME=${{ matrix.service }}-app
 
-      # React
-      - name: Setup Node
-        if: matrix.language == 'react'
-        uses: actions/setup-node@v3
+          docker build -t $IMAGE_NAME ./app/${{ matrix.service }}
+          docker tag $IMAGE_NAME ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+
+      # 🚀 Deploy to EC2 (Amazon Linux)
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
         with:
-          node-version: '18'
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            SERVICE=${{ matrix.service }}
+            IMAGE=${{ secrets.DOCKER_USERNAME }}/${SERVICE}-app:latest
 
-      - name: Build React
-        if: matrix.language == 'react'
-        run: |
-          cd app/react
-          npm install
-          npm run build
+            # Pull latest image
+            docker pull $IMAGE
 
-      # Python
-      - name: Setup Python
-        if: matrix.language == 'python'
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+            # Stop old container (if running)
+            docker stop $SERVICE || true
+            docker rm $SERVICE || true
 
-      - name: Build Python
-        if: matrix.language == 'python'
-        run: |
-          cd app/python
-          pip install -r requirements.txt
-
-      - name: Deploy
-        run: echo "Deploy app"
+            # Run new container
+            docker run -d \
+              --name $SERVICE \
+              -p 80:80 \
+              $IMAGE
